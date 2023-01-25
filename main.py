@@ -70,7 +70,80 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
 
         offset = findDistance(l_shldr_x, l_shldr_y, r_shldr_x, r_shldr_y)
 
+        # Инструкция, которая регулирует положение пользователя
 
+        if offset < 100:
+            cv2.putText(image, ' Aligned', (w - 200, 30), font, 0.9, green, 2)
+        else:
+            cv2.putText(image, ' Turn sideways', (w - 300, 30), font, 0.9, red, 2)
 
+        # Поиск углов
+
+        neck_inclination = findAngle(l_shldr_x, l_shldr_y, l_ear_x, l_ear_y)
+        torso_inclination = findAngle(l_hip_x, l_hip_y, l_shldr_x, l_shldr_y)
+
+        # Прорисовка точек на экране
+
+        cv2.circle(image, (l_shldr_x, l_shldr_y), 7, yellow, -1)
+        cv2.circle(image, (l_ear_x, l_ear_y), 7, yellow, -1)
+        cv2.circle(image, (l_shldr_x, l_shldr_y - 100), 7, yellow, -1)
+        cv2.circle(image, (l_hip_x, l_hip_y), 7, yellow, -1)
+        cv2.circle(image, (l_hip_x, l_hip_y - 100), 7, blue, -1)
+
+        # Вывод углов на экран
+
+        angle_text_string = 'Neck : ' + str(int(neck_inclination)) + '  Torso : ' + str(int(torso_inclination))
+
+        # Блок кода, который соединяет точки на теле, при этом если выполняется "условие 1", то программа выводи
+        # информацию обуглах начинает вести отсчет времени, в течении которого пользователь сидит ровно
+
+        if neck_inclination < 40 and torso_inclination < 7:  # условие 1
+            bad_frames = 0
+            good_frames += 1
+
+            cv2.putText(image, angle_text_string, (10, 30), font, 0.9, light_green, 2)
+            cv2.putText(image, str(int(neck_inclination)), (l_shldr_x + 10, l_shldr_y), font, 0.9, light_green, 2)
+            cv2.putText(image, str(int(torso_inclination)), (l_hip_x + 10, l_hip_y), font, 0.9, light_green, 2)
+
+            cv2.line(image, (l_shldr_x, l_shldr_y), (l_ear_x, l_ear_y), green, 4)
+            cv2.line(image, (l_shldr_x, l_shldr_y), (l_shldr_x, l_shldr_y - 100), green, 4)
+            cv2.line(image, (l_hip_x, l_hip_y), (l_shldr_x, l_shldr_y), green, 4)
+            cv2.line(image, (l_hip_x, l_hip_y), (l_hip_x, l_hip_y - 100), green, 4)
+
+        # Блок кода, который соединяет точки на теле, при этом если выполняется "условие 2", то программа выводи
+        # информацию обуглах начинает вести отсчет времени, в течении которого пользователь сидит криво
+
+        else:  # Условие 2
+            good_frames = 0
+            bad_frames += 1
+
+            cv2.putText(image, angle_text_string, (10, 30), font, 0.9, red, 2)
+            cv2.putText(image, str(int(neck_inclination)), (l_shldr_x + 10, l_shldr_y), font, 0.9, red, 2)
+            cv2.putText(image, str(int(torso_inclination)), (l_hip_x + 10, l_hip_y), font, 0.9, red, 2)
+
+            cv2.line(image, (l_shldr_x, l_shldr_y), (l_ear_x, l_ear_y), red, 4)
+            cv2.line(image, (l_shldr_x, l_shldr_y), (l_shldr_x, l_shldr_y - 100), red, 4)
+            cv2.line(image, (l_hip_x, l_hip_y), (l_shldr_x, l_shldr_y), red, 4)
+            cv2.line(image, (l_hip_x, l_hip_y), (l_hip_x, l_hip_y - 100), red, 4)
+
+        good_time = (1 / fps) * good_frames
+        bad_time = (1 / fps) * bad_frames
+
+        # Вывод счетчика времени на экран
+
+        if good_time > 0:
+            time_string_good = 'Good Posture : ' + str(round(good_time, 1)) + 's'
+            cv2.putText(image, time_string_good, (10, h - 20), font, 0.9, green, 2)
+        else:
+            time_string_bad = 'Bad Posture : ' + str(round(bad_time, 1)) + 's'
+            cv2.putText(image, time_string_bad, (10, h - 20), font, 0.9, red, 2)
+
+        # Нужно вывести предупрежждение о том, чтобы человек сел ровно, если он сиди криво уже минуту
+
+        if bad_time > 60:
+            cv2.putText(image, 'Sit properly!', (400, 400), font, 3, red, 2)
+
+        cv2.imshow('frame', image)
+        cv2.waitKey(1)
 
 cv2.destroyAllWindows()
